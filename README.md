@@ -35,17 +35,17 @@ Structural biology for coding variants
 Workshop ( this will constitute the bulk of the workshop )
 
 How to directly download mutation data from R. 
-Although this is not a course in R per se, but you will learn how to manipulate/wrangle a the mutation data.frame.  
-Subset type of mutations.  
-Aggregate by attributes such as types of mutations. 
-Query ( eg. for specific variants ) 
-Tabulate mutations ( eg. frequency tables ) . 
-How to identify what could be potentially be pathogenic and cross reference it with existing data. 
-How to take existing mutation data and predict possible actionable targets for either druggability, diagnostic or prognosis. 
-You will also learn a few ways to plot the data. 
-Basic plotting of your mutation table. 
-How to generate figures to look for total burden across different chromosome/regions.
-Potentially – how to analyse mutational signatures (if there is time)
+* Although this is not a course in R per se, but you will learn how to manipulate/wrangle a the mutation data.frame.  
+* Subset type of mutations.  
+* Aggregate by attributes such as types of mutations. 
+* Query ( eg. for specific variants ) 
+* Tabulate mutations ( eg. frequency tables ) . 
+* How to identify what could be potentially be pathogenic and cross reference it with existing data. 
+* How to take existing mutation data and predict possible actionable targets for either druggability, diagnostic or prognosis. 
+* You will also learn a few ways to plot the data. 
+* Basic plotting of your mutation table. 
+* How to generate figures to look for total burden across different chromosome/regions.
+* Potentially – how to analyse mutational signatures (if there is time)
 
 
 
