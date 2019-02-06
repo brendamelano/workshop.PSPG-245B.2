@@ -71,7 +71,7 @@ cosmic[grepl("^BRCA|^ATM$|^BARD1$|^CDH1$|^CHEK2$|^NBN$|^NF1$|^PALB2$|^PTEN$", co
 # lets collect this through a loop so not to overwheml the system 
 
 total = ceiling ( length( cancer.gene)/100  )  *100
-mutations = data.frame (  mutations , stringsAsFactors = F )
+mutations = data.frame ( stringsAsFactors = F )
 e = 1
 for(i in seq(from=200, to=total, by=200)){
    
