@@ -8,22 +8,28 @@ The size of modern data sets (TCGA) and their current applications, e.g. in heal
 What does a standard genome look like? For example, 4-5 million variants in an average genome compared to the reference human genome. Then this can lead in to talking about germline vs somatic mutations, and how this is crucial for studying cancer 
 
 2. Basic vocabulary and concepts. 
-Classes of somatic mutations
-Pt mutations
-Coding 
-Silent
-Missense
-Nonsense
-Noncoding ( UTR ) 
-Intronic
-Intergenic
-Splice site variants?
-Small regional mutations
-Insertion
-Deletions
-Duplications
+* Classes of somatic mutations
+
+# Pt mutations
+* Coding 
+* Silent
+* Missense
+* Nonsense
+* Noncoding ( UTR ) 
+* Intronic
+* Intergenic
+* Splice site variants?
+
+# Small regional mutations
+* Insertion
+* Deletions
+* Duplications
+
 3. Deciphering nomenclature of sequence variations.
+
 What is his section? Is this deciphering single letter vs three letter mutatioion codes etc.?
+
+
 4. Identifying functionally relevant mutations - passenger vs driver
 How RNA and DNA sequencing data can be integrated to find functional variants?
 Variant prediction tools – e.g. CADD scores, and other methods
@@ -34,7 +40,7 @@ Structural biology for coding variants
 
 Workshop ( this will constitute the bulk of the workshop )
 
-How to directly download mutation data from R. 
+* We will start off with basic data mining.  To begin with will learn how to directly download mutation data from R.  There are many sources and API's however here will be using  cbioportal. 
 * Although this is not a course in R per se, but you will learn how to manipulate/wrangle a the mutation data.frame.  
 * Subset type of mutations.  
 * Aggregate by attributes such as types of mutations. 
