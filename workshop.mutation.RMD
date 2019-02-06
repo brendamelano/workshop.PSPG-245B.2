@@ -10,12 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # workshop.mutation.2019
-In this workshop you will learn about the fundamentals of mutation identification in cancer.  This will include the following. 
+In this workshop you will learn about the fundamentals of mutation identification in cancer.  By the end of the course you will be able to do the following. 
 
 1. Basic bioinformatic workflow: from sample to identifying potentially targetable mutations. 
-Types of sequencing, e.g. WES and WGS, and also DNA vs RNA
-Standard pipelines to go from reads to actionable information
-The size of modern data sets (TCGA) and their current applications, e.g. in healthcare
+* Types of sequencing, e.g. WES and WGS, and also DNA vs RNA
+* Standard pipelines to go from reads to actionable information
+* The size of modern data sets (TCGA) and their current applications, e.g. in healthcare
 What does a standard genome look like? For example, 4-5 million variants in an average genome compared to the reference human genome. Then this can lead in to talking about germline vs somatic mutations, and how this is crucial for studying cancer 
 
 2. Basic vocabulary and concepts. 
@@ -69,6 +69,10 @@ library ( cgdsr)
 library ( ggplot2)
 library(knitr)
 library(kableExtra)
+
+source("auxi.R")
+
+
 
 # initiate cbioportal 
 
