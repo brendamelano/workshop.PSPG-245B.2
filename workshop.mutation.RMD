@@ -3,6 +3,8 @@ title: "Workshop Mutation 2019"
 author: "Lee and Martell"
 date: "February 5, 2019"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -10,26 +12,38 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # workshop.mutation.2019
-In this workshop you will learn about the fundamentals of mutation identification in cancer.  By the end of the course you will be able to do the following. 
+In this workshop you will learn about the fundamentals of mutation identification in cancer.  By the end of the course you will be able to do the following: 
+
+0. Introduction and basic ouline.
+
+# 20 min Lecture
 
 1. Basic bioinformatic workflow: from sample to identifying potentially targetable mutations. 
 * Types of sequencing, e.g. WES and WGS, and also DNA vs RNA
+** benefits of each 
+** integration
 * Standard pipelines to go from reads to actionable information
+** certain nuisanes to consider 
+** thresholding and filters.  What is acceptable?
 * The size of modern data sets (TCGA) and their current applications, e.g. in healthcare
-What does a standard genome look like? For example, 4-5 million variants in an average genome compared to the reference human genome. Then this can lead in to talking about germline vs somatic mutations, and how this is crucial for studying cancer 
+** What is the future of NGS? 
+* What does a standard genome look like and how it informs the analysis. 
+** differences in germline vs somatic mutations and how this is crucial for studying cancer. 
 
 2. Basic vocabulary and concepts. 
+ 
 * Classes of somatic mutations
+* The differences between synonymous vs nonsynonymous mutations
 
 # Pt mutations
 * Coding 
-* Silent
+* Synonymous ( Silent ) 
 * Missense
 * Nonsense
-* Noncoding ( UTR ) 
+* Noncoding ( eg UTR ) 
 * Intronic
 * Intergenic
-* Splice site variants?
+* Splice site variants
 
 # Small regional mutations
 * Insertion
@@ -37,17 +51,10 @@ What does a standard genome look like? For example, 4-5 million variants in an a
 * Duplications
 
 3. Deciphering nomenclature of sequence variations.
+* DNA
+* Protein
 
-What is his section? Is this deciphering single letter vs three letter mutatioion codes etc.?
-
-
-4. Identifying functionally relevant mutations - passenger vs driver
-How RNA and DNA sequencing data can be integrated to find functional variants?
-Variant prediction tools - e.g. CADD scores, and other methods
-Comparison to known cancer genes or even known cancer causing variants
-Pathway analysis - how this leads in to the design/search of drugs
-Structural biology for coding variants
-
+4. Introduction to workshop. 
 
 Workshop ( this will constitute the bulk of the workshop )
 
@@ -63,6 +70,15 @@ Workshop ( this will constitute the bulk of the workshop )
 * Basic plotting of your mutation table. 
 * How to generate figures to look for total burden across different chromosome/regions.
 * Potentially - how to analyse mutational signatures (if there is time)
+4. Identifying functionally relevant mutations - passenger vs driver
+How RNA and DNA sequencing data can be integrated to find functional variants?
+Variant prediction tools - e.g. CADD scores, and other methods
+Comparison to known cancer genes or even known cancer causing variants
+Pathway analysis - how this leads in to the design/search of drugs
+Structural biology for coding variants
+
+# Summary and further exercises. 
+Here we will summarize and talk about pratracaililty of the analysis.  There will also be some "homework" or extra take home exercises.
 
 ```{r, include=T, echo=T, message=FALSE, warning=FALSE}
 library ( cgdsr)
@@ -198,6 +214,9 @@ for(i in seq(from=200, to=total, by=200)){
 dim ( mutations )
 colnames ( mutations )
 
+# there is an error with
+
+
 # lets take a few minutes here to go over the different fields. 
 
 # lets check if ALL your samples are availble 
@@ -208,11 +227,14 @@ final =  mutations [ mutations$case_id %in% samples, ]
 
 
 unique ( final$case_id)
+# so as you can see above there are a total of 10 unique samples. 
+
 ```
 
 # Now that the data has been succesfully donwloaded lets study your breast cancer set. 
 
 ```{r}
+
 # lets see what are the mutations types. 
 
 unique ( mutations$mutation_type)
@@ -242,7 +264,7 @@ ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
           text = element_text(size=16),  # size of label
           axis.text.x = element_text(angle=0, hjust=1) )
 
-# lets figure out what type of mutations are BRCA
+# lets figure out what type of mutations are often seen in BRCA
 ### how would you do this?  
 #### .... 5 mins 
 
@@ -264,6 +286,8 @@ ggplot(mutation.brca, aes(Var1,Freq), label=Freq ) +
           text = element_text(size=16),  # size of label
           axis.text.x = element_text(angle=0, hjust=1) )
 
+# ok lets seperate out germ line vs somatic.
+
 # Bonus can you figure out which samples have the BRCA samples and which don't?
 
 # now lets see what are the main genes that are present in missense mutations. 
@@ -274,5 +298,20 @@ genes.missense.genes = data.frame ( table ( genes.missense$gene_symbol))
 genes.missense.genes = genes.missense.genes[ order ( -genes.missense.genes$Freq), ]
 
 View ( head ( genes.missense.genes, 15))
+
+# lets now red frequency table by subsetting various levels pathogneicty
+
+# subtract germ line. 
+
+hist ( mutations$variant_read_count_normal  )
+hist ( mutations$reference_read_count_tumor)
+
+
+# kinase 
+# tsg/oncogene 
+# amino acid
+# drug database 
+# 1000 genome
+
 ```
 
