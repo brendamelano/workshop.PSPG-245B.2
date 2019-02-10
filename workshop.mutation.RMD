@@ -21,7 +21,7 @@ library ( cgdsr)
 library ( ggplot2)
 library(knitr)
 library(kableExtra)
-
+library ( dplyr)
 source("auxi.R")
 
 # initiate cbioportal 
@@ -465,5 +465,22 @@ k2 ( head ( action[action$clinical_significance == "Sensitivity/Response" ,actio
 # HW at this point please use your own TCGA ID, study it using what you learn above.  Assess QC on your sample, study what genes are most common and which if any are targetable. 
 
 ```{r}
+# here is example where I chose, myid = "TCGA-C8-A131-01"
+myid = "TCGA-C8-A131-01"
+
+actionid = drug[ drug$match %in% unique ( mutations[mutations$case_id == myid, ]  $drug  ), ]
+
+actionid = actionid %>% dplyr::group_by(variant) %>%
+        dplyr::summarise(
+            gene = paste(unique ( gene ), collapse = "," ) ,
+            disease = paste(unique ( disease ), collapse = "," ),
+            clinical_significance =  paste(unique ( clinical_significance ), collapse = "," ),
+            drugs = paste(unique ( drugs ), collapse = "," ) 
+            
+        ) %>%
+        data.frame()
+
+k2( actionid, myid)
+ 
 ```
 
