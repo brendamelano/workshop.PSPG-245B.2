@@ -2,11 +2,11 @@
 
 This workshop requires R, Rstudio and the following packages. 
 
-library ( cgdsr)
-library ( ggplot2)
-library(knitr)
-library(kableExtra)
-library ( dplyr)
+* library ( cgdsr)
+* library ( ggplot2)
+* library(knitr)
+* library(kableExtra)
+* library ( dplyr)
 ---
 all packages can be install through install.packages however knitr you may need to install from a non standard repo. 
 
