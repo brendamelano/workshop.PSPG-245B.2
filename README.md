@@ -1,5 +1,5 @@
 # workshop.mutation.2019
-
+** please remember to set the working directory to your source by clicking Sesssion-> Set working directory -> to source file location**
 This workshop requires R, Rstudio and the following packages. 
 
 * library ( cgdsr)
