@@ -150,7 +150,7 @@ for(i in seq(from=200, to=total, by=200)){
     
     print ( paste ( e, i ))
     temp = getMutationData(cbiop , brca.study, mutation, cancer.gene[e:i])
-    e = i 
+    e = i + 1
     mutations = rbind ( mutations, temp)
     
     Sys.sleep (2) # lets give the system a break
