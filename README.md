@@ -1,4 +1,27 @@
 # workshop.mutation.2019
+
+This workshop requires R, Rstudio and the following packages. 
+
+library ( cgdsr)
+library ( ggplot2)
+library(knitr)
+library(kableExtra)
+library ( dplyr)
+---
+all packages can be install through install.packages however knitr you may need to install from a non standard repo. 
+
+install.packages('knitr', repos = c('https://xran.yihui.name', 'https://cran.r-project.org')
+
+You might also be able to install via bioconductor: 
+
+BiocManager::install("knitr") 
+
+Finally if kableExtra is having issues install the devtools packages first then try to compile it yourself. 
+
+devtools::install_github("haozhu233/kableExtra")
+
+---
+
 In this workshop you will learn about the fundamentals of mutation identification in cancer.  This will include the following. 
 
 1. Basic bioinformatic workflow: from sample to identifying potentially targetable mutations. 
