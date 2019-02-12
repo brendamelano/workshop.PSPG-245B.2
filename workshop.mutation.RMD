@@ -16,7 +16,16 @@ knitr::opts_chunk$set(echo = TRUE)
 # workshop.mutation.2019
 In this workshop you will learn about the fundamentals of mutation identification in cancer. 
 
+
 ```{r, include=T, echo=T, message=FALSE, warning=FALSE, fig=TRUE}
+# first makes sure packages are installed. 
+# install.packages('knitr', repos = c('https://xran.yihui.name', 'https://cran.r-project.org') 
+# devtools::install_github("haozhu233/kableExtra")
+
+# second source file 
+# output to console instead
+
+
 library ( cgdsr)
 library ( ggplot2)
 library(knitr)
@@ -24,12 +33,14 @@ library(kableExtra)
 library ( dplyr)
 source("auxi.R")
 
+
+
 # initiate cbioportal 
 
 cbiop = CGDS("http://www.cbioportal.org/")
 ```
 
-# Lets learn how communicate with cbioporta and study what is available.
+# Lets learn how communicate with cbioportal and study what is available.
 
 ```{r }
 
@@ -37,7 +48,6 @@ cbiop = CGDS("http://www.cbioportal.org/")
 studies = getCancerStudies(cbiop)
 
 # lets take a look at it. 
- 
 k2( head ( studies, 10) , "example list of data available in cbioportal")
 
 # ? what do you think each column represents
@@ -50,9 +60,7 @@ dim ( studies )
 # ? How many studies are there currently in cbioportal
 
 # Find the dataset you want. 
-
-# According to the syllabus we are looking for TCGA study on breast cancer from Cell, 2015 
-
+# According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
 # ? How do you think we can locate this based on what we know above  
 # so lets search for it using the grepl function 
 
@@ -68,6 +76,10 @@ k2(breast, "list of breast related studies")
 
 brca.study = "brca_tcga_pub2015"
 
+# note: each institution has different ways of organizing their data, thus its up 
+# to the user to find out. As you can see the main node appears to be cancer_study_id
+# from here we are going to drill down to caese, that is types of modality and samples available. 
+
 # now that we have a case id we can search to see what types of samples are available AND types of data 
 
 mycaselist = getCaseLists(cbiop,brca.study)
@@ -78,29 +90,30 @@ k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_descri
 # ? Which data do you think is most relevant this workshop? 
 
 
-# here we see that brca_tcga_pub2015_3way_complete is probably the best to use because it includes
-# All Complete Tumors vs something like All tumor samples with methylation data sinc we don't care about methylation in this exercise
+# here we see that brca_tcga_pub2015_3way_complete is probably the best to use because it includes all Complete Tumors vs something like All tumor samples with methylation data sinc we don't care about methylation in this exercise
+# ? what would happen if we chose to use "All samples with methylation data" instead
 
 case.list.id = "brca_tcga_pub2015_3way_complete"
 
 
 # ok now using All Complete Tumors lets see if your sample is present. 
 
-
 mysample = mycaselist[ mycaselist$case_list_id == case.list.id, ]$case_ids
 mysample = unlist ( strsplit(mysample, " ") )
 
 # ? mysample variable now contains all the TCGA samples in this study, can you check if your sample is exists? 
 
-# here is the list 
+# here is the list of samples. Do you see your sample in here? 
+
 samples
 
-# here I randomely chose a TCGA ID 
+# here I chose a sample to test 
 
-mysample[mysample== "TCGA-AC-A2BK-01"]
+myid = "TCGA-C8-A131-01"
+mysample[mysample== myid]
 
 # here is another way
-intersect ( mysample, "TCGA-AC-A2BK-01")
+intersect ( mysample, myid)
 
 # ? why did we not use grepl this time around? 
 # hint str ( mysample)
@@ -160,7 +173,7 @@ for(i in seq(from=200, to=total, by=200)){
 mutations$igv = paste ( mutations$chr, mutations$start_position, mutations$end_position, mutations$reference_allele, mutations$variant_allele)
 
 # there is an error in the mutation table.  The links are obsolete.  Here we fix it. 
-# http://mutationassessor.org/r3
+# by replacing the older url with this: http://mutationassessor.org/r3
 
 mutations$xvar_link = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link)
 mutations$xvar_link_msa = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_msa )
@@ -181,12 +194,12 @@ dim ( mutations )
 names ( mutations )
 ?getMutationData
 
-
+unique( mutations$mutation_type)
 # ? based on the lecture previously can identify the different mutation_type
 # ? based on the lecture previously can you figure out what each of these mean?  
 # for example which of these is a nonsynonymous substitution
 # ? for druggability which one of these do you think its more likely to be useful
-unique( mutations$mutation_type)
+
 
 
 # ? can you guess what is functional_impact_score
@@ -194,9 +207,10 @@ k2 ( data.frame ( table ( mutations$functional_impact_score)  ), "impact scores 
 
 # Bonus make sure that your sample has mutations. 
 
-nrow ( mutations [ mutations$case_id == "TCGA-AC-A2BK-01", ] )
+nrow ( mutations [ mutations$case_id ==  myid , ] )
 
 # ? if you have more than one sample, say you want to check all 10 samples in the class, how would you do this? 
+# ? this is important, for example previously we were able to subset for Triple-negative breast tumors
 
 samples
 
@@ -244,8 +258,7 @@ nrow ( cancer.list )
 
 ### BONUS can you check if your favorite gene is in here? 
 
-# Another way we can detect important mutations is to see if other resources are available.  
-# do you know of any institutions that might have this information. 
+# Another way we can detect important mutations is to see if other resources are available. # Here we use cosmic a manaully curated list of recurrent mutations in cancer. 
 
 k2 ( head ( cosmic.70[ grepl("breast",  cosmic.70$description ), ] ), "breast cancer in cosmic")
 # ? what do you think the 70 means?
@@ -271,7 +284,7 @@ k2 ( head ( mutations[ grepl("^BRCA", mutations$gene_symbol), c("chr.x","start_p
 # https://cancer.sanger.ac.uk/cosmic/search?q=3813722
 # ? does everything match
 # ? why do you think the the coordinates are off by 1
-# BONUS can you find all BRCA mutation that is Missense_Mutation AND found is cosmic?
+# BONUS can you find all BRCA mutation that is Missense_Mutation AND found is cosmic in the mutation db?
 # hint, mutations$mutation_type == "Missense_Mutation"
 ```
 
@@ -466,7 +479,7 @@ k2 ( head ( action[action$clinical_significance == "Sensitivity/Response" ,actio
 
 ```{r}
 # here is example where I chose, myid = "TCGA-C8-A131-01"
-myid = "TCGA-C8-A131-01"
+
 
 actionid = drug[ drug$match %in% unique ( mutations[mutations$case_id == myid, ]  $drug  ), ]
 
