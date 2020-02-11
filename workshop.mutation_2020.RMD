@@ -10,18 +10,18 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE )
 ```
 
 # PSPG 245B
 In this workshop you will learn about the fundamentals of mutation identification in cancer. By the end of the course you should be able to generate your own full R markdown for your assigned TCGA ID, including plots and identification of actionable mutations. Please see the the accompanying PDF for more information. 
 
-## the following are required for this workshop
+## The following are required for this workshop
 <div style="background-color:#b6d2db">
 
 Software requirements  
 
-* we assume that you are running > R 3.5 and have the below packges install. 
+* R >3.5 and have the below packages installed. 
 * use BiocManager::install() when possible. 
     + cgdsr
     + ggplot2
@@ -29,8 +29,9 @@ Software requirements
     + kableExtra
     + dplyr
     + VennDiagram
-
-Please make sure to either clone the github repo or download the dropbox folder  
+    + reshape2
+    
+Please make sure to either clone the github repo or download the entire dropbox folder. Unzip this to a folder.  
 
 * https://www.dropbox.com/sh/lvaqmurdozncnxw/AADWRtK8woO4MjXIvGqcUcpXa?dl=1
 
@@ -41,19 +42,31 @@ In this workshop we will be mainly using cbioportal's API to download the data w
 * We will be using the TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
 * Each student should had been assigned a TCGA ID prior to this.  
 
+	+TCGA-C8-A3M7-01
+	+TCGA-GM-A2D9-01
+	+TCGA-BH-A1FL-01
+	+TCGA-E2-A14Z-01
+	+TCGA-BH-A1FC-01
+	+TCGA-AC-A2QJ-01
+	+TCGA-EW-A1P8-01
+	+TCGA-E2-A1LE-01
+	+TCGA-E2-A1LK-01
+	+TCGA-AC-A2FE-01
+	
 </div>
 
 
 ```{r, include=T, echo=T, message=FALSE, warning=FALSE, fig=TRUE}
 
 # load require package and "source" an auxillary R script design for this workshop.  
-# think of this as a cheat code. 
+# think of this as a cheat code designed for this workshop. 
 
 library ( cgdsr)
 library ( ggplot2)
 library(knitr)
 library(kableExtra)
 library ( dplyr)
+library ( reshape2)
 library(VennDiagram)
 source("auxi.R")
 
@@ -66,12 +79,12 @@ cbiop = CGDS("http://www.cbioportal.org/")
 
 # Lets learn how communicate with cbioportal and study what is available. 
 * This portal is hierarchically structured. 
-    + Head  List of all the cancer studies. 
-    + identify the study you want
-    + list all the "cases" for that study, a case is a description of both data available for the study and/or subsets of certain phenotype
+    + List of all the cancer studies available on this portal. 
+    + Identify the study you want
+    + List all the "cases" for that study, a case is a description of both data available for the study and/or subsets of certain phenotypes
 	+ With each case you can get the list of all the associated TCGA identify
 	+ which you can then use to get all the clincal data assocaited with the TCGA samples. 
-	+ moreover you use the study to get specific genetic profile ( that is all the datasets available for downloading ). 
+	+ moreover you use the study to get specific genetic profile ( datasets available for downloading ). 
 	
 
 ```{r }
@@ -88,9 +101,7 @@ k2( head ( studies, 10) , "example list of data available in cbioportal")
 # lets find out how many studies are available to the public
 dim ( studies )
 
-# ? how do you think we can use this to look for our dataset
-# ? Because there are > 200 studies how do you think we can easily find what ware are looking for. 
-
+# ? how do you think we can use this to look for our dataset amoung > 200 studies?
 
 # Find the dataset you want. 
 # According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
@@ -104,7 +115,7 @@ k2(breast, "list of breast related studies")
 
 ### First BONUS question! try to find if there are other cancer data you might interested in, eg Lung Cancer
 
-# from the table we now know that the study brca_tcga_pub2015 is what we need
+# from the table we now know that the study id:  brca_tcga_pub2015 
 
 brca.study = "brca_tcga_pub2015"
 
@@ -114,10 +125,13 @@ brca.study = "brca_tcga_pub2015"
 # this is your caselist - this are all the available data availabe for your specific study 
 
 mycaselist = getCaseLists(cbiop,brca.study)
+
 # first lets study what is in the case list.  
+# notice that descriptions contains not only type of samples but sometimes it includes what type of data they are.  
+
 k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_description",	 "cancer_study_id"	)], 50), "list of cases for the BRCA CELL 2015 study" ) 
 
-# ? can you tell us what each of the column mean based on what is outputed? 
+
 # ? Which data do you think is most relevant this workshop? 
 
 # here we see that brca_tcga_pub2015_all is probably the best to use because it includes ALL Complete Tumors 
@@ -153,7 +167,7 @@ mysample[grepl(myid, mysample)]
 ### Now lets check if it matches with what is reported: 817 
 length ( mysample)
 
-# lets get clinical some clinical data 
+# lets get clinical some data
 myclinicaldata = getClinicalData(cbiop,getCaseLists(cbiop,brca.study)[1,1])
 # clean up the names a bit 
 myclinicaldata$pid = gsub ( "\\.", "-", row.names(myclinicaldata))
@@ -167,7 +181,7 @@ k2 ( t ( myclinicaldata[myclinicaldata$pid %in% myid, ] ))
 
 
 ### Bonus Lets have some fun here, even with just a table of clinical data we can do some investigation. 
-# For example how would you figure out if one of your sample Triple-negative or HER2+. 
+# For example how would you figure out if one of your sample ( the assigned TCGA) is a Triple-negative or HER2+. 
 # hint look at the caselist and work backwards using the intersect function
 
 k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_description",	 "cancer_study_id"	)], 50), "list of cases for the BRCA CELL 2015 study" ) 
@@ -209,7 +223,7 @@ venn.this (
     dgg=180
 ) 
 
-# 
+# Now out of curiosity we want to know if there is a difference in age based on these attributes. 
 
 age.both = intersect (er_POS,her2p )
 age.both=myclinicaldata[ myclinicaldata$pid %in% age.both, ]$AGE
@@ -244,7 +258,7 @@ mutation = mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_
 
 # ? what other modalities do you think may be of interest
 # anyone want to guess what "probe most anti-correlated with expression means"
-cna = mygeneticprofile[grepl( "HM450", mygeneticprofile$genetic_profile_name),1 ]
+cna = mygeneticprofile[grepl( "Putative copy", mygeneticprofile$genetic_profile_name),1 ]
 
 exp = mygeneticprofile[grepl( "V2 RSEM", mygeneticprofile$genetic_profile_name),1 ]
 
@@ -259,8 +273,27 @@ exp = mygeneticprofile[grepl( "V2 RSEM", mygeneticprofile$genetic_profile_name),
 # lets collect this through a loop so not to overwhelm the system
 # its important to be mindful of resources when mining data.  We need to play nice and consider the server load. 
 # ? what do you think we can do to miminize server load? 
-# cancer.gene was previosly imported so that we are only going to look for gens asscoated with cancer. This is from various sources 
+
+# For this class we are going to just download genes that are relevant to cancer. 
+# genes that had already been implicated in cancer.
+# We do this by looking through different organization and cross reference a list of genes. 
+
+k2 ( cancer.list[17:25, ], "cancer list")
+
 length ( cancer.gene)
+
+
+# lets check this list to make sure genes that are relevant to breast cancer exists 
+
+imp = as.character ( cancer.list[grepl("^BRCA|^ATM$|^BARD1$|^CDH1$|^CHEK2$|^NBN$|^NF1$|^PALB2$|^PTEN$", cancer.list$gene), ]$gene )
+
+# ? why did we add ^ in front and $ for only some genes and not others?
+
+k2 ( cancer.list[cancer.list$gene %in% imp, ], "breast cancer genes")
+
+
+
+
 
 total = ceiling ( length( cancer.gene)/100  )  *100
 mutations = data.frame (   stringsAsFactors = F )
@@ -334,7 +367,8 @@ unique( mutations$mutation_type)
 # ? can you guess what is functional_impact_score
 k2 ( data.frame ( table ( mutations$functional_impact_score)  ), "impact scores " )
 
-# Bonus make sure that your sample has mutations. 
+# make sure that your sample has mutations. 
+#? if you don't see any or obvious mutation where else can look at for the driver signal? 
 
 nrow ( mutations [ mutations$case_id ==  myid , ] )
 
@@ -360,46 +394,25 @@ gc()
 
 ```{r}
 
-# One easy approach is to look for "cancer" related genes that had already been implicated in cancer.
-# ? how do you think we can do that? 
-
-k2 ( cancer.list[17:25, ], "cancer list")
-
-# ? can you recall what is exome sequencing and why its important?
-
-# lets check this list to make sure genes that are relevant to breast cancer exists 
-
-imp = as.character ( cancer.list[grepl("^BRCA|^ATM$|^BARD1$|^CDH1$|^CHEK2$|^NBN$|^NF1$|^PALB2$|^PTEN$", cancer.list$gene), ]$gene )
-
-# ? why did we add ^ in front and $ for only some genes and not others?
-
-k2 ( cancer.list[cancer.list$gene %in% imp, ], "breast cancer genes")
-
-# ? based on this which panel do you think is weakest for breast cancer and why do you think that is the case? 
-
-# Bonus: can you check if BRCA is present in any of the mutations we just downloaded? 
-
-k2 ( head ( mutations[ grepl("^BRCA", mutations$gene_symbol), ] ), "BRCA gene mutations" )
 
 
-# lets see how many genes do we have all together 
-nrow ( cancer.list )
 
-### BONUS can you check if your favorite gene is in here? 
 
-# Another way we can detect important mutations is to see if other resources are available. # Here we use cosmic a manaully curated list of recurrent mutations in cancer. 
+
+# Another way we can detect important mutations is to see if other resources are available. 
+# Here we use cosmic a manaully curated list of recurrent mutations in cancer and look for keyword breast 
 
 k2 ( head ( cosmic.70[ grepl("breast",  cosmic.70$description ), ] ), "breast cancer in cosmic")
-# ? what do you think the 70 means?
-
 
 # lets integrate cosmic into our mutation table
 
 mutations = merge ( mutations, cosmic.70, by="igv", all.x=T, all.y=F )
 
+# ? note how we are merging by coordinates.  This is the most accurate way to do this. 
 # ? why do you think all.x = T and all.y=F 
 
 # let us find out how many mutations we have that is also found in cosmic 
+# the description field should not be empty if there was a cosmic entry
 
 nrow ( mutations[ ! is.na ( mutations$description ),  ] ) / nrow (mutations)
 
@@ -414,6 +427,7 @@ k2 ( head ( mutations[ grepl("^BRCA", mutations$gene_symbol), c("amino_acid_chan
 # ? does everything match
 # ? why do you think the the coordinates are off by 1
 
+### BONUS check if your favorite gene(s)
 
 # BONUS can you find all BRCA mutation that is Missense_Mutation AND found is cosmic in the mutation db?
 
@@ -427,7 +441,7 @@ k2 ( head ( mutations[ grepl("^BRCA", mutations$gene_symbol), c("amino_acid_chan
 
 
 
-# lets tabulate the types of mutations mostly seen with Breast cancer 
+# lets tabulate the types of mutations  
 
 mutation.type = data.frame ( table ( mutations$mutation_type))
 
@@ -446,33 +460,56 @@ ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
           panel.background = element_blank(), 
           axis.line = element_line(colour = "black"), 
           text = element_text(size=16),  # size of label
-          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "BRCA mutation types")
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "All mutation types")
 
 
+# As mentioned previously one reliable way to look for relevant mutations is to match it against what has been previosly observed and/or study. Here we can try to use Cosmic however other organization may be relevant as well including clinvar
+
+cosmic.mutation = mutations [ !is.na(mutations$description), ]
+
+mutation.type = data.frame ( table ( cosmic.mutation$mutation_type))
+
+mutation.type = mutation.type[ order ( mutation.type$Freq), ]
+mutation.type$Var1 = factor ( mutation.type$Var1, levels = mutation.type$Var1)
+
+ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
+    geom_bar(aes(fill = Freq), stat="identity", position = "dodge") +
+    coord_flip() +
+    scale_fill_distiller(palette = "RdBu") + xlab("") + ylab("") +
+    theme(strip.text.y = element_text(angle = 0), legend.position="none") +
+    geom_text(aes(label=Freq), position=position_dodge(width=0.9), vjust=.4, hjust = .5, size=5) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "black"), 
+          text = element_text(size=16),  # size of label
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Mutation types found in cosmic")
 
 
-
-# ? seems like missense mutation is the most recurrent.  Can you think of any way to clean up the data 
+# ? seems like missense mutation is the most recurrent.  Can you think of any way to filter the data further 
 
 # ? in the lecture we talked about depth.  So lets calculate this. 
 
 mutations$dp = mutations$variant_read_count_tumor + mutations$reference_read_count_tumor 
+quantile ( mutations$dp)
 
  ggplot(mutations, aes(x=dp)) + 
-  geom_density( color="darkblue", fill="steelblue" ) + geom_vline(xintercept = 20, linetype="dotted", 
+  geom_density( color="darkblue", fill="steelblue" ) + geom_vline(xintercept = 21, linetype="dotted", 
                 color = "grey", size=1.5) + ggtitle ( " density plot, total depth")
 
-# ? by looking at this plot we can see that there is a good amount of mutations that are under 20 
+# ? by looking at this plot and quantile we can see that there is a good amount of mutations that are under 21 
 # ? how would you remove this?
 
 # before  
 dim ( mutations )
 # after 
-mutations = mutations[ mutations$dp > 20, ]
+mutations = mutations[ mutations$dp > 21, ]
 dim (mutations )
 
 
+# another thing we can look at is Allele frequency
 # lets calculate allele freqeuncy here as well 
+
 mutations$af = mutations$variant_read_count_tumor / mutations$dp
 
  ggplot(mutations, aes(x=af)) + 
@@ -484,7 +521,11 @@ mutations$af = mutations$variant_read_count_tumor / mutations$dp
 
 mutations = mutations[ order ( - mutations$af ) , ]
 
-k2 ( head ( mutations, 10) , "top 10 variant ranked by AF")
+# clean mut head
+cleanmut = c ("igv","dp","af","gene_symbol","case_id",	"mutation_type", "amino_acid_change" , "functional_impact_score"
+              , "variant_read_count_tumor"	,"reference_read_count_tumor" , "description" ) 
+
+k2 ( head ( mutations[ , cleanmut], 10) , "top 10 variant ranked by AF")
 
 # lets further filter the mutations with any af > .1
 mutations = mutations[ mutations$af > .1, ]
@@ -512,30 +553,10 @@ ggplot(mutation.gene [ 1:20, ] , aes(Var1,Freq), label=Freq ) +
           axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Most recurrent genes")
 
 
-# as mentioned previously one reliable way to look for relevant mutations is to match it against what has been previosly observed and/or study. 
-
-cosmic.mutation = mutations [ !is.na(mutations$description), ]
-
-mutation.type = data.frame ( table ( cosmic.mutation$mutation_type))
-
-mutation.type = mutation.type[ order ( mutation.type$Freq), ]
-mutation.type$Var1 = factor ( mutation.type$Var1, levels = mutation.type$Var1)
-
-ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
-    geom_bar(aes(fill = Freq), stat="identity", position = "dodge") +
-    coord_flip() +
-    scale_fill_distiller(palette = "RdBu") + xlab("") + ylab("") +
-    theme(strip.text.y = element_text(angle = 0), legend.position="none") +
-    geom_text(aes(label=Freq), position=position_dodge(width=0.9), vjust=.4, hjust = .5, size=5) +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          axis.line = element_line(colour = "black"), 
-          text = element_text(size=16),  # size of label
-          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "BRCA mutation types found in cosmic")
 
 
-# ? compare the two plots, did anything change?
+
+
 
 # based on literature these are some of the genes involved in breast cancer. 
 imp 
@@ -561,11 +582,13 @@ ggplot(mutation.brca, aes(Var1,Freq), label=Freq ) +
           axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Mutation-types in genes associated with breast cancer")
 
 # lets assume that we don't know these genes 
-# ? can you think of a way to find them based on what we have? 
+# BONUS can you think of another way to rediscover these genes and/or find novel ones?
 
-# there are many like how we sorted by most frequent above. 
-# another is to subset by what has already been observe in cosmic 
+# HERE you is where the fun is! The discovery part.  And there are many many ways to do this.  
+# so be creative! 
 
+# here is a 2 sec way to do this. 
+# simply look in cosmic to see how often these genes appears in breast cancer. 
 imp.brac = data.frame ( table ( mutations[ grepl( "breast", mutations$description), ]$gene_symbol ) )
 imp.brac$fraction = imp.brac$Freq / nrow ( mutations)
 imp.brac = imp.brac [ order ( -imp.brac$fraction) , ]
@@ -573,7 +596,6 @@ imp.brac = imp.brac [ order ( -imp.brac$fraction) , ]
 k2 ( head ( imp.brac, 10), "top cosmic genes found in breast cancer")
 
 # ? how does this compare to our plot above 
-
 # both analysis seem to show a lot of overlap eg that TP53 and PIK3CA are important.  Lets breakdown the mutation type a bit more for the top 5
 
 top5 = as.character ( imp.brac$Var1[1:5] )
@@ -585,6 +607,8 @@ top5 = top5 [ order ( - top5$Freq), ]
 
 top5$url = paste0(url,top5$top5)
 k2 ( head ( top5, 20), "top 20 recurrent mutations")
+# take the first mutation and google it what does it say? 
+# take the second, what does google say? 
 
 
 
@@ -609,6 +633,63 @@ k2 ( head ( action[action$clinical_significance == "Sensitivity/Response" ,actio
 
 ```
 
+# Lets plot some genes. 
+
+```{r}
+
+g1 = melt ( expression["PIK3CA",  ] )
+colnames ( g1 )= c("pid","value")
+g1$pid = gsub ( "\\.","-", g1$pid)
+
+g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
+g1$value = log2 ( g1$value + 1 )
+ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
+        geom_violin()+ 
+        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
+        theme_bw() +
+        ylab("log2 (tpm + 1 ) ") +
+        xlab("") +
+        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
+              
+              axis.text.y = element_text(size=12),
+              axis.text.x = element_text(angle = 90, size=11.5),
+              axis.title.x = element_text(size=22),
+              
+              axis.title.y     = element_text(size=22), 
+              legend.text      =element_text(size=12)
+        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+                         geom = "crossbar", width = .5)  + ggtitle ( "PIK3CA")
+
+
+g1 = melt ( expression["TP53",  ] )
+colnames ( g1 )= c("pid","value")
+g1$pid = gsub ( "\\.","-", g1$pid)
+
+g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
+g1$value = log2 ( g1$value + 1 )
+ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
+        geom_violin()+ 
+        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
+        theme_bw() +
+        ylab("log2 (tpm + 1 ) ") +
+        xlab("") +
+        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
+              
+              axis.text.y = element_text(size=12),
+              axis.text.x = element_text(angle = 90, size=11.5),
+              axis.title.x = element_text(size=22),
+              
+              axis.title.y     = element_text(size=22), 
+              legend.text      =element_text(size=12)
+        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+                         geom = "crossbar", width = .5) + ggtitle ( "TP53")
+
+
+
+
+```
+
+
 # HW at this point please use your own TCGA ID, study it using what you learn above.  Assess QC on your sample, study what genes are most common and which if any are targetable. 
 
 ```{r}
@@ -630,4 +711,7 @@ actionid = actionid %>% dplyr::group_by(variant) %>%
 k2( actionid, myid)
  
 ```
+
+
+
 
