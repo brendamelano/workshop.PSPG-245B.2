@@ -1,20 +1,22 @@
-# workshop.mutation.2019
-** please remember to set the working directory to your source by clicking Sesssion-> Set working directory -> to source file location**
-This workshop requires R, Rstudio and the following packages. 
+# workshop.mutation.2020
 
-* library ( cgdsr)
-* library ( ggplot2)
-* library(knitr)
-* library(kableExtra)
-* library ( dplyr)
+** please remember to set the working directory to your source by clicking Sesssion-> Set working directory -> to source file location
+
+This workshop requires R > 3.5, Rstudio and the following packages. 
+
+* use BiocManager::install() when possible. 
+    + cgdsr
+    + ggplot2
+    + knitr
+    + kableExtra
+    + dplyr
+    + VennDiagram
+    + reshape2
 ---
-all packages can be install through install.packages however knitr you may need to install from a non standard repo. 
+if knitr does not work try installing it from a non standard repo. 
 
 install.packages('knitr', repos = c('https://xran.yihui.name', 'https://cran.r-project.org')
 
-You might also be able to install via bioconductor: 
-
-BiocManager::install("knitr") 
 
 Finally if kableExtra is having issues install the devtools packages first then try to compile it yourself. 
 
