@@ -1,7 +1,7 @@
 ---
-title: "Workshop Mutation 2019"
+title: "Workshop Mutation PSPG 245B"
 author: "Lee and Martell"
-date: "February 5, 2019"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     df_print: paged
@@ -13,59 +13,91 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# workshop.mutation.2019
-In this workshop you will learn about the fundamentals of mutation identification in cancer. 
+# PSPG 245B
+In this workshop you will learn about the fundamentals of mutation identification in cancer. By the end of the course you should be able to generate your own full R markdown for your assigned TCGA ID, including plots and identification of actionable mutations. Please see the the accompanying PDF for more information. 
+
+## the following are required for this workshop
+<div style="background-color:#b6d2db">
+
+Software requirements  
+
+* we assume that you are running > R 3.5 and have the below packges install. 
+* use BiocManager::install() when possible. 
+    + cgdsr
+    + ggplot2
+    + knitr
+    + kableExtra
+    + dplyr
+    + ComplexHeatmap
+
+Please make sure to either clone the github repo or download the dropbox folder  
+
+* https://www.dropbox.com/sh/lvaqmurdozncnxw/AADWRtK8woO4MjXIvGqcUcpXa?dl=1
+
+* https://github.com/ahdee/workshop.mutation.2019
+
+In this workshop we will be mainly using cbioportal's API to download the data we need. Thus it is important that you have access to the internet.
+
+* We will be using the TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
+* Each student should had been assigned a TCGA ID prior to this.  
+
+</div>
 
 
 ```{r, include=T, echo=T, message=FALSE, warning=FALSE, fig=TRUE}
-# first makes sure packages are installed. 
-# install.packages('knitr', repos = c('https://xran.yihui.name', 'https://cran.r-project.org') 
-# devtools::install_github("haozhu233/kableExtra")
 
-# second source file 
-# output to console instead
-
+# load require package and "source" an auxillary R script design for this workshop.  
+# think of this as a cheat code. 
 
 library ( cgdsr)
 library ( ggplot2)
 library(knitr)
 library(kableExtra)
 library ( dplyr)
+
 source("auxi.R")
 
 
 
 # initiate cbioportal 
-
 cbiop = CGDS("http://www.cbioportal.org/")
+
 ```
 
-# Lets learn how communicate with cbioportal and study what is available.
+# Lets learn how communicate with cbioportal and study what is available. 
+* This portal is hierarchically structured. 
+    + Head  List of all the cancer studies. 
+    + identify the study you want
+    + list all the "cases" for that study, a case is a description of both data available for the study and/or subsets of certain phenotype
+	+ With each case you can get the list of all the associated TCGA identify
+	+ which you can then use to get all the clincal data assocaited with the TCGA samples. 
+	+ moreover you use the study to get specific genetic profile ( that is all the datasets available for downloading ). 
+	
 
 ```{r }
 
 # Get list of cancer studies at server
 studies = getCancerStudies(cbiop)
 
-# lets take a look at it. 
+# This will return a table with a list of available cancer studies to draw from 
 k2( head ( studies, 10) , "example list of data available in cbioportal")
 
-# ? what do you think each column represents
-# ? how do you think we can use this to look for our dataset
-# ? what is the "10" for in the function. 
+# note: k2 is one of those cheat codes to make tables print out nicely 
+# ? what is the "10" for in the function above. 
 
-# lets find how many unique sets are in here 
+# lets find out how many studies are available to the public
 dim ( studies )
 
-# ? How many studies are there currently in cbioportal
+# ? how do you think we can use this to look for our dataset
+# ? Because there are > 200 studies how do you think we can easily find what ware are looking for. 
+
 
 # Find the dataset you want. 
 # According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
-# ? How do you think we can locate this based on what we know above  
-# so lets search for it using the grepl function 
-
+# However lets first search for all the breast studies available so that we can look to see which one most closely matches. 
 
 breast = studies[ grepl("Breast", studies$name, ignore.case = T ), ]
+
 # ? what is the T for what if you use lower case instead of upper case
 
 k2(breast, "list of breast related studies")
@@ -76,11 +108,10 @@ k2(breast, "list of breast related studies")
 
 brca.study = "brca_tcga_pub2015"
 
-# note: each institution has different ways of organizing their data, thus its up 
-# to the user to find out. As you can see the main node appears to be cancer_study_id
-# from here we are going to drill down to caese, that is types of modality and samples available. 
-
+# note: each institution has different ways of organizing their data, here we first 
+# identify the case studies and then get the cancer_study_id we need for a specific study 
 # now that we have a case id we can search to see what types of samples are available AND types of data 
+# this is your caselist - this are all the available data availabe for your specific study 
 
 mycaselist = getCaseLists(cbiop,brca.study)
 # first lets study what is in the case list.  
@@ -89,9 +120,8 @@ k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_descri
 # ? can you tell us what each of the column mean based on what is outputed? 
 # ? Which data do you think is most relevant this workshop? 
 
-
-# here we see that brca_tcga_pub2015_3way_complete is probably the best to use because it includes all Complete Tumors vs something like All tumor samples with methylation data sinc we don't care about methylation in this exercise
-# ? what would happen if we chose to use "All samples with methylation data" instead
+# here we see that brca_tcga_pub2015_all is probably the best to use because it includes ALL Complete Tumors 
+# compared to brca_tcga_pub2015_her2pos which are only samples that are Her2-positive breast tumors 
 
 case.list.id = "brca_tcga_pub2015_all"
 
@@ -105,25 +135,103 @@ mysample = unlist ( strsplit(mysample, " ") )
 
 # here is the list of samples. Do you see your sample in here? 
 
-samples
+cat ( samples, sep="\n")
 
-# here I chose a sample to test 
+# here I chose a random sample to test 
+# IMPORTANT! here you need to use your own assigned TCGA ID 
 
 myid = "TCGA-C8-A131-01"
 mysample[mysample== myid]
 
 # here is another way
 intersect ( mysample, myid)
-
+# yet another 
 mysample[grepl(myid, mysample)]
+
+#? can you think of any reason to use grep over another? 
 
 ### Now lets check if it matches with what is reported: 817 
 length ( mysample)
 
+# lets get clinical some clinical data 
 myclinicaldata = getClinicalData(cbiop,getCaseLists(cbiop,brca.study)[1,1])
+# clean up the names a bit 
+myclinicaldata$pid = gsub ( "\\.", "-", row.names(myclinicaldata))
+# lets get the clinical information for your TCGA id. 
+k2 ( t ( myclinicaldata[myclinicaldata$pid %in% myid, ] ))
 
-### Bonus how would you figure out which of these samples are Triple-negative breast tumors. 
+# important fields to consider. 
+# AGE, AJCC_PATHOLOGIC_TUMOR_STAGE, Ethnicity
+# DFS ( disease free), OS ( overall survival)
+
+
+
+### Bonus Lets have some fun here, even with just a table of clinical data we can do some investigation. 
+# For example how would you figure out if one of your sample Triple-negative or HER2+. 
 # hint look at the caselist and work backwards using the intersect function
+
+k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_description",	 "cancer_study_id"	)], 50), "list of cases for the BRCA CELL 2015 study" ) 
+
+t3.study = "brca_tcga_pub2015_trineg"
+t3 = mycaselist[ mycaselist$case_list_id == t3.study, ]$case_ids
+t3 = unlist ( strsplit(t3, " ") )
+
+
+her2p.study = "brca_tcga_pub2015_her2pos"
+her2p = mycaselist[ mycaselist$case_list_id == her2p.study, ]$case_ids
+her2p = unlist ( strsplit(her2p, " ") )
+
+er_neg.study = "brca_tcga_pub2015_erneg"
+er_neg = mycaselist[ mycaselist$case_list_id == er_neg.study, ]$case_ids
+er_neg = unlist ( strsplit(er_neg, " ") )
+
+
+er_POS.study = "brca_tcga_pub2015_erpos"
+er_POS = mycaselist[ mycaselist$case_list_id == er_POS.study, ]$case_ids
+er_POS = unlist ( strsplit(er_POS, " ") )
+
+
+# answer. 
+t3[t3==myid]
+her2p[her2p==myid]
+
+# Also suppose you ask how many are HER2 positive but ER +? 
+
+venn1 = data.frame ( her2p= length ( her2p)
+                    , er_neg= length ( er_POS )
+                    , int= length ( intersect(er_POS,her2p))  
+                        )
+names ( venn1 )[1:2] = c("Her2+","ER+") 
+
+venn.this ( 
+    venn1, 
+    type = 2, cp= c("#3C8A9B" , "#9B445D"), 
+    dgg=180
+) 
+
+# 
+
+age.both = intersect (er_POS,her2p )
+age.both=myclinicaldata[ myclinicaldata$pid %in% age.both, ]$AGE
+age.Her2only.noER = setdiff( her2p, er_POS)
+age.Her2only.noER = myclinicaldata[ myclinicaldata$pid %in% age.Her2only.noER, ]$AGE
+
+temp = rbind ( 
+data.frame ( age = age.both, type= rep("both", length(age.both)) )    
+,data.frame ( age = age.Her2only.noER, type= rep("Heronly", length(age.Her2only.noER)))   
+)
+
+median ( age.Her2only.noER )
+median ( age.both )
+
+ggplot( temp, aes(x=age, fill=type)) +
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("#69b3a2", "#404080")) 
+
+#? BONUS question to take home. As a pharmacologist how can you use DFS and OS? For example 
+# the histogram above only shows age of onset.  However, question what if you hypothesize
+# that having HER2 positive is much worse of survival then having both HER2 and ER+? 
+
 
 
 # Now lets see what information is available for your study 
@@ -132,9 +240,7 @@ k2 ( mygeneticprofile, "types of data available for chosen case" )
 
 
 # so looking at that we now know it contains several interesting modalities.  Lets try the mutation
-mutation = mygeneticprofile[8, 1]
-# ? what does [11, 1] mean
-mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_name), ]
+mutation = mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_name), ]$genetic_profile_id 
 
 # ? what other modalities do you think may be of interest
 # anyone want to guess what "probe most anti-correlated with expression means"
@@ -158,6 +264,7 @@ length ( cancer.gene)
 
 total = ceiling ( length( cancer.gene)/100  )  *100
 mutations = data.frame (   stringsAsFactors = F )
+expression = data.frame (   stringsAsFactors = F )
 e = 1
 for(i in seq(from=200, to=total, by=200)){
    
@@ -167,11 +274,27 @@ for(i in seq(from=200, to=total, by=200)){
     
     print ( paste ( e, i ))
     temp = getMutationData(cbiop , brca.study, mutation, cancer.gene[e:i])
-    exp.temp = getProfileData(cbiop , cancer.gene[e:i]
-                              , exp
-                              , getCaseLists(cbiop,brca.study)[1,1] , samples)
-    e = i + 1
+
+    
     mutations = rbind ( mutations, temp)
+    
+        e2 = 1
+        exp.temp2 = 1
+        for(i2 in seq(from=200, to=length ( myclinicaldata$pid), by=200)){
+        exp.temp = getProfileData(cbiop , cancer.gene[e:i]
+                              , exp
+                              , getCaseLists(cbiop,brca.study)[1,1] , myclinicaldata$pid[e2:i2])
+        if ( exp.temp2 == 1){
+            exp.temp2 =   t ( exp.temp)
+        }else {
+            exp.temp2 =  cbind ( exp.temp2,  t ( exp.temp)) 
+        }
+        e2 = i2+ 1 
+        Sys.sleep (1) # lets give the system a break
+        }
+        
+    e = i + 1    
+    expression = rbind ( expression, exp.temp2)    
     
     Sys.sleep (2) # lets give the system a break
     
@@ -186,8 +309,9 @@ mutations$xvar_link = gsub('getma.org','http://mutationassessor.org/r3', mutatio
 mutations$xvar_link_msa = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_msa )
 mutations$xvar_link_pdb = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_pdb  )
 
-
-
+expressionc= expression[complete.cases(expression), ]
+samplesnice = gsub ( "-",".", samples)
+expressionc[ row.names (expressionc ) %in% c(  "TP53" , "KRAS"), samplesnice ]
 
 ```
 
@@ -207,8 +331,6 @@ unique( mutations$mutation_type)
 # for example which of these is a nonsynonymous substitution
 # ? for druggability which one of these do you think its more likely to be useful
 
-
-
 # ? can you guess what is functional_impact_score
 k2 ( data.frame ( table ( mutations$functional_impact_score)  ), "impact scores " )
 
@@ -217,7 +339,6 @@ k2 ( data.frame ( table ( mutations$functional_impact_score)  ), "impact scores 
 nrow ( mutations [ mutations$case_id ==  myid , ] )
 
 # ? if you have more than one sample, say you want to check all 10 samples in the class, how would you do this? 
-
 # ? this is important, for example previously we were able to subset for Triple-negative breast tumors
 
 samples
