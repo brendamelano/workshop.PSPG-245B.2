@@ -93,7 +93,7 @@ k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_descri
 # here we see that brca_tcga_pub2015_3way_complete is probably the best to use because it includes all Complete Tumors vs something like All tumor samples with methylation data sinc we don't care about methylation in this exercise
 # ? what would happen if we chose to use "All samples with methylation data" instead
 
-case.list.id = "brca_tcga_pub2015_3way_complete"
+case.list.id = "brca_tcga_pub2015_all"
 
 
 # ok now using All Complete Tumors lets see if your sample is present. 
@@ -115,13 +115,12 @@ mysample[mysample== myid]
 # here is another way
 intersect ( mysample, myid)
 
-# ? why did we not use grepl this time around? 
-# hint str ( mysample)
+mysample[grepl(myid, mysample)]
 
-### Now lets check if it matches with what is reported: 816 
+### Now lets check if it matches with what is reported: 817 
 length ( mysample)
 
-
+myclinicaldata = getClinicalData(cbiop,getCaseLists(cbiop,brca.study)[1,1])
 
 ### Bonus how would you figure out which of these samples are Triple-negative breast tumors. 
 # hint look at the caselist and work backwards using the intersect function
@@ -131,14 +130,17 @@ length ( mysample)
 mygeneticprofile = getGeneticProfiles(cbiop,brca.study)
 k2 ( mygeneticprofile, "types of data available for chosen case" )
 
-#? based on lecture what information do you think is missing from this table. 
-# hint, has to do with alignment to a reference
 
 # so looking at that we now know it contains several interesting modalities.  Lets try the mutation
-mutation = mygeneticprofile[11, 1]
+mutation = mygeneticprofile[8, 1]
 # ? what does [11, 1] mean
+mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_name), ]
+
 # ? what other modalities do you think may be of interest
-cna = mygeneticprofile[3,1]
+# anyone want to guess what "probe most anti-correlated with expression means"
+cna = mygeneticprofile[grepl( "HM450", mygeneticprofile$genetic_profile_name),1 ]
+
+exp = mygeneticprofile[grepl( "V2 RSEM", mygeneticprofile$genetic_profile_name),1 ]
 
 ```
 
@@ -151,6 +153,8 @@ cna = mygeneticprofile[3,1]
 # lets collect this through a loop so not to overwhelm the system
 # its important to be mindful of resources when mining data.  We need to play nice and consider the server load. 
 # ? what do you think we can do to miminize server load? 
+# cancer.gene was previosly imported so that we are only going to look for gens asscoated with cancer. This is from various sources 
+length ( cancer.gene)
 
 total = ceiling ( length( cancer.gene)/100  )  *100
 mutations = data.frame (   stringsAsFactors = F )
@@ -163,6 +167,9 @@ for(i in seq(from=200, to=total, by=200)){
     
     print ( paste ( e, i ))
     temp = getMutationData(cbiop , brca.study, mutation, cancer.gene[e:i])
+    exp.temp = getProfileData(cbiop , cancer.gene[e:i]
+                              , exp
+                              , getCaseLists(cbiop,brca.study)[1,1] , samples)
     e = i + 1
     mutations = rbind ( mutations, temp)
     
