@@ -28,7 +28,7 @@ Software requirements
     + knitr
     + kableExtra
     + dplyr
-    + ComplexHeatmap
+    + VennDiagram
 
 Please make sure to either clone the github repo or download the dropbox folder  
 
@@ -54,7 +54,7 @@ library ( ggplot2)
 library(knitr)
 library(kableExtra)
 library ( dplyr)
-
+library(VennDiagram)
 source("auxi.R")
 
 
@@ -614,7 +614,7 @@ k2 ( head ( action[action$clinical_significance == "Sensitivity/Response" ,actio
 ```{r}
 # here is example where I chose, myid = "TCGA-C8-A131-01"
 
-
+ 
 actionid = drug[ drug$match %in% unique ( mutations[mutations$case_id == myid, ]  $drug  ), ]
 
 actionid = actionid %>% dplyr::group_by(variant) %>%
