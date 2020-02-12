@@ -39,27 +39,30 @@ Please make sure to either clone the github repo or download the entire dropbox 
 
 In this workshop we will be mainly using cbioportal's API to download the data we need. Thus it is important that you have access to the internet.
 
-* We will be using the TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
-* Each student should had been assigned a TCGA ID prior to this.  
+We will be using the TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
 
-	+TCGA-C8-A3M7-01
-	+TCGA-GM-A2D9-01
-	+TCGA-BH-A1FL-01
-	+TCGA-E2-A14Z-01
-	+TCGA-BH-A1FC-01
-	+TCGA-AC-A2QJ-01
-	+TCGA-EW-A1P8-01
-	+TCGA-E2-A1LE-01
-	+TCGA-E2-A1LK-01
-	+TCGA-AC-A2FE-01
+* Each student should had been assigned a TCGA ID prior to this.
+    + TCGA-C8-A3M7-01
+    + TCGA-GM-A2D9-01
+    + TCGA-BH-A1FL-01
+    + TCGA-E2-A14Z-01
+	+ TCGA-BH-A1FC-01
+	+ TCGA-AC-A2QJ-01
+	+ TCGA-EW-A1P8-01
+	+ TCGA-E2-A1LE-01
+	+ TCGA-E2-A1LK-01
+	+ TCGA-AC-A2FE-01
 	
 </div>
 
+<hr>
+
+<font color="red"> Important: please remember to set the working directory to your source by clicking Sesssion-> Set working directory -> to source file location</font>
 
 ```{r, include=T, echo=T, message=FALSE, warning=FALSE, fig=TRUE}
 
 # load require package and "source" an auxillary R script design for this workshop.  
-# think of this as a cheat code designed for this workshop. 
+# the auxillary script will help manage some of the more complex/redundant tasks 
 
 library ( cgdsr)
 library ( ggplot2)
@@ -70,26 +73,23 @@ library ( reshape2)
 library(VennDiagram)
 source("auxi.R")
 
-
-
-# initiate cbioportal 
+# initiate cbioportal API
 cbiop = CGDS("http://www.cbioportal.org/")
-
 ```
 
 # Lets learn how communicate with cbioportal and study what is available. 
-* This portal is hierarchically structured. 
+* This portal is hierarchically structured. This is the workflow will will use. 
     + List of all the cancer studies available on this portal. 
     + Identify the study you want
     + List all the "cases" for that study, a case is a description of both data available for the study and/or subsets of certain phenotypes
 	+ With each case you can get the list of all the associated TCGA identify
 	+ which you can then use to get all the clincal data assocaited with the TCGA samples. 
 	+ moreover you use the study to get specific genetic profile ( datasets available for downloading ). 
-	
+	+ From here you can then download the actual data. 
 
 ```{r }
 
-# Get list of cancer studies at server
+# Start by getting a list of cancer studies available at cbio
 studies = getCancerStudies(cbiop)
 
 # This will return a table with a list of available cancer studies to draw from 
@@ -99,13 +99,13 @@ k2( head ( studies, 10) , "example list of data available in cbioportal")
 # ? what is the "10" for in the function above. 
 
 # lets find out how many studies are available to the public
-dim ( studies )
+dim ( studies ) # dim is a function to tabulate a dataframe
 
-# ? how do you think we can use this to look for our dataset amoung > 200 studies?
+# ? how do you think we can use this to look for the dataset we need amoung > 200 studies?
 
 # Find the dataset you want. 
 # According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
-# However lets first search for all the breast studies available so that we can look to see which one most closely matches. 
+# However lets first search for all the breast cancer studies available so that we can look to see what is availabe. 
 
 breast = studies[ grepl("Breast", studies$name, ignore.case = T ), ]
 
@@ -115,44 +115,55 @@ k2(breast, "list of breast related studies")
 
 ### First BONUS question! try to find if there are other cancer data you might interested in, eg Lung Cancer
 
-# from the table we now know that the study id:  brca_tcga_pub2015 
+# from the table we now know that the study id is:  brca_tcga_pub2015 
 
 brca.study = "brca_tcga_pub2015"
 
-# note: each institution has different ways of organizing their data, here we first 
-# identify the case studies and then get the cancer_study_id we need for a specific study 
-# now that we have a case id we can search to see what types of samples are available AND types of data 
-# this is your caselist - this are all the available data availabe for your specific study 
+# note: each institution has different ways of organizing their data
+# ok from the study we can identify all the available data by using a case list API 
+
 
 mycaselist = getCaseLists(cbiop,brca.study)
 
-# first lets study what is in the case list.  
+
 # notice that descriptions contains not only type of samples but sometimes it includes what type of data they are.  
 
 k2 ( head ( mycaselist[ ,c("case_list_id",	 "case_list_name",	 "case_list_description",	 "cancer_study_id"	)], 50), "list of cases for the BRCA CELL 2015 study" ) 
 
 
-# ? Which data do you think is most relevant this workshop? 
+# ? Which data do you think is most relevant for this workshop? 
 
 # here we see that brca_tcga_pub2015_all is probably the best to use because it includes ALL Complete Tumors 
 # compared to brca_tcga_pub2015_her2pos which are only samples that are Her2-positive breast tumors 
+```
+
+## For **reproducibility** we need to consider either the "freeze" case or store a local copy.  This is an important point that is often overlook!
+* Also be aware that cbio is only 1 of many different portals available to the public. It is not necessarily the best.  
+
+```{r}
+
 
 case.list.id = "brca_tcga_pub2015_all"
 
 
 # ok now using All Complete Tumors lets see if your sample is present. 
 
+# first lets get all the TCGA ID associated with this case 
 mysample = mycaselist[ mycaselist$case_list_id == case.list.id, ]$case_ids
 mysample = unlist ( strsplit(mysample, " ") )
 
 # ? mysample variable now contains all the TCGA samples in this study, can you check if your sample is exists? 
 
-# here is the list of samples. Do you see your sample in here? 
+# here is the list of samples we stored in the auxillary. Do you see your sample in here? 
 
 cat ( samples, sep="\n")
+```
 
-# here I chose a random sample to test 
-# IMPORTANT! here you need to use your own assigned TCGA ID 
+## Here I chose a random sample to test 
+* IMPORTANT! here you need to use your own assigned TCGA ID 
+
+```{r}
+
 
 myid = "TCGA-C8-A131-01"
 mysample[mysample== myid]
@@ -166,7 +177,11 @@ mysample[grepl(myid, mysample)]
 
 ### Now lets check if it matches with what is reported: 817 
 length ( mysample)
+```
 
+## With this list of TCGA ids we can also get clinical data for each of the samples. 
+
+```{r}
 # lets get clinical some data
 myclinicaldata = getClinicalData(cbiop,getCaseLists(cbiop,brca.study)[1,1])
 # clean up the names a bit 
@@ -177,7 +192,6 @@ k2 ( t ( myclinicaldata[myclinicaldata$pid %in% myid, ] ))
 # important fields to consider. 
 # AGE, AJCC_PATHOLOGIC_TUMOR_STAGE, Ethnicity
 # DFS ( disease free), OS ( overall survival)
-
 
 
 ### Bonus Lets have some fun here, even with just a table of clinical data we can do some investigation. 
@@ -241,19 +255,24 @@ median ( age.both )
 ggplot( temp, aes(x=age, fill=type)) +
     geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
     scale_fill_manual(values=c("#69b3a2", "#404080")) 
+```
 
-#? BONUS question to take home. As a pharmacologist how can you use DFS and OS? For example 
-# the histogram above only shows age of onset.  However, question what if you hypothesize
-# that having HER2 positive is much worse of survival then having both HER2 and ER+? 
+BONUS question to take home. As a pharmacologist how can you use DFS and OS? For example 
+the histogram above only shows age of onset.  However, question what if you hypothesize
+that having HER2 positive is much worse of survival then having both HER2 and ER+?
 
 
+```{r}
+ 
 
 # Now lets see what information is available for your study 
 mygeneticprofile = getGeneticProfiles(cbiop,brca.study)
 k2 ( mygeneticprofile, "types of data available for chosen case" )
 
 
-# so looking at that we now know it contains several interesting modalities.  Lets try the mutation
+# so looking at that we now know it contains several interesting modalities.  
+# lets pick up 3 types of analysis that may be of interests 
+
 mutation = mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_name), ]$genetic_profile_id 
 
 # ? what other modalities do you think may be of interest
@@ -267,6 +286,7 @@ exp = mygeneticprofile[grepl( "V2 RSEM", mygeneticprofile$genetic_profile_name),
 
 
 # Now that we have a basic understanding of what is available lets go and download the actual data. 
+**Important** Due to the nature of the API and having so many people use it at once the connection might fail. If that is the case retry or if all else fails use the frozen version which has already been previosly downloaded. 
 
 ```{r}
 
@@ -293,13 +313,11 @@ k2 ( cancer.list[cancer.list$gene %in% imp, ], "breast cancer genes")
 
 
 
-
-
 total = ceiling ( length( cancer.gene)/100  )  *100
 mutations = data.frame (   stringsAsFactors = F )
 expression = data.frame (   stringsAsFactors = F )
 e = 1
-for(i in seq(from=200, to=total, by=200)){
+for(i in seq(from=150, to=total, by=150)){
    
     if ( i > length(cancer.gene)){
         i = length(cancer.gene)
@@ -309,11 +327,12 @@ for(i in seq(from=200, to=total, by=200)){
     temp = getMutationData(cbiop , brca.study, mutation, cancer.gene[e:i])
 
     
-    mutations = rbind ( mutations, temp)
     
+    mutations = rbind ( mutations, temp)
+    Sys.sleep (2) # lets give the system a break
         e2 = 1
         exp.temp2 = 1
-        for(i2 in seq(from=200, to=length ( myclinicaldata$pid), by=200)){
+        for(i2 in seq(from=150, to=length ( myclinicaldata$pid), by=150)){
         exp.temp = getProfileData(cbiop , cancer.gene[e:i]
                               , exp
                               , getCaseLists(cbiop,brca.study)[1,1] , myclinicaldata$pid[e2:i2])
@@ -329,7 +348,7 @@ for(i in seq(from=200, to=total, by=200)){
     e = i + 1    
     expression = rbind ( expression, exp.temp2)    
     
-    Sys.sleep (2) # lets give the system a break
+    
     
 }
 # create coordinates
@@ -341,12 +360,49 @@ mutations$igv = paste ( mutations$chr, mutations$start_position, mutations$end_p
 mutations$xvar_link = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link)
 mutations$xvar_link_msa = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_msa )
 mutations$xvar_link_pdb = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_pdb  )
+```
 
+Besides Mutation data we also downloaded expression RNAseq data in the form of TPM. 
+* Let take a look at some of our favorite genes. 
+
+```{r}
 expressionc= expression[complete.cases(expression), ]
 samplesnice = gsub ( "-",".", samples)
 expressionc[ row.names (expressionc ) %in% c(  "TP53" , "KRAS"), samplesnice ]
 
+for ( gene in c("BRCA2","PTEN","TP53")){
+
+g1 = melt (  expression[gene,  ]  )
+colnames ( g1 )= c("pid","value")
+g1$pid = gsub ( "\\.","-", g1$pid)
+
+g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
+g1$value = log2 ( g1$value + 1 )
+
+gthis = ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
+        geom_violin()+ 
+        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
+        theme_bw() +
+        ylab("log2 (tpm + 1 ) ") +
+        xlab("") +
+        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
+              
+              axis.text.y = element_text(size=12),
+              axis.text.x = element_text(angle = 90, size=11.5),
+              axis.title.x = element_text(size=22),
+              
+              axis.title.y     = element_text(size=22), 
+              legend.text      =element_text(size=12)
+        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+                         geom = "crossbar", width = .5)  + ggtitle ( gene ) +
+    scale_fill_manual(values = c("#a6cee3","#b2df8a", "#fdbf6f") )
+plot ( gthis )
+}
+
+
 ```
+
+
 
 # lets study the mutation table
 
@@ -356,12 +412,12 @@ dim ( mutations )
 
 # lets take a few minutes here to go over the different fields. 
 names ( mutations )
-?getMutationData
+
 
 unique( mutations$mutation_type)
 # ? based on the lecture previously can identify the different mutation_type
 # ? based on the lecture previously can you figure out what each of these mean?  
-# for example which of these is a nonsynonymous substitution
+# for example which of these are nonsynonymous substitution?
 # ? for druggability which one of these do you think its more likely to be useful
 
 # ? can you guess what is functional_impact_score
@@ -390,16 +446,12 @@ gc()
 
 
 # Now lets talk a bit about how to identify pathogenic mutations. 
-## Can you recall some of the things that were mentioned previously? 
+* recall some of the things that were mentioned previously? 
 
 ```{r}
 
 
-
-
-
-
-# Another way we can detect important mutations is to see if other resources are available. 
+# For example we can detect important mutations is to see if other resources are available. 
 # Here we use cosmic a manaully curated list of recurrent mutations in cancer and look for keyword breast 
 
 k2 ( head ( cosmic.70[ grepl("breast",  cosmic.70$description ), ] ), "breast cancer in cosmic")
@@ -422,16 +474,12 @@ nrow ( mutations[ ! is.na ( mutations$description ),  ] ) / nrow (mutations)
 
 k2 ( head ( mutations[ grepl("^BRCA", mutations$gene_symbol), c("amino_acid_change","chr.x","start_position","end_position","reference_allele", "variant_allele",
 "gene_symbol","case_id","mutation_status","mutation_type","description")] ) )
-# BONUS go to https://cancer.sanger.ac.uk/cosmic and compare results of line 4 
-# https://cancer.sanger.ac.uk/cosmic/search?q=3813722
-# ? does everything match
-# ? why do you think the the coordinates are off by 1
+# BONUS go to https://cancer.sanger.ac.uk/cosmic and compare this. 
+# ? does everything match why not? 
 
-### BONUS check if your favorite gene(s)
+
 
 # BONUS can you find all BRCA mutation that is Missense_Mutation AND found is cosmic in the mutation db?
-
-
 # hint, mutations$mutation_type == "Missense_Mutation"
 ```
 
@@ -633,61 +681,7 @@ k2 ( head ( action[action$clinical_significance == "Sensitivity/Response" ,actio
 
 ```
 
-# Lets plot some genes. 
 
-```{r}
-
-g1 = melt ( expression["PIK3CA",  ] )
-colnames ( g1 )= c("pid","value")
-g1$pid = gsub ( "\\.","-", g1$pid)
-
-g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
-g1$value = log2 ( g1$value + 1 )
-ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
-        geom_violin()+ 
-        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
-        theme_bw() +
-        ylab("log2 (tpm + 1 ) ") +
-        xlab("") +
-        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
-              
-              axis.text.y = element_text(size=12),
-              axis.text.x = element_text(angle = 90, size=11.5),
-              axis.title.x = element_text(size=22),
-              
-              axis.title.y     = element_text(size=22), 
-              legend.text      =element_text(size=12)
-        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
-                         geom = "crossbar", width = .5)  + ggtitle ( "PIK3CA")
-
-
-g1 = melt ( expression["TP53",  ] )
-colnames ( g1 )= c("pid","value")
-g1$pid = gsub ( "\\.","-", g1$pid)
-
-g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
-g1$value = log2 ( g1$value + 1 )
-ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
-        geom_violin()+ 
-        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
-        theme_bw() +
-        ylab("log2 (tpm + 1 ) ") +
-        xlab("") +
-        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
-              
-              axis.text.y = element_text(size=12),
-              axis.text.x = element_text(angle = 90, size=11.5),
-              axis.title.x = element_text(size=22),
-              
-              axis.title.y     = element_text(size=22), 
-              legend.text      =element_text(size=12)
-        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
-                         geom = "crossbar", width = .5) + ggtitle ( "TP53")
-
-
-
-
-```
 
 
 # HW at this point please use your own TCGA ID, study it using what you learn above.  Assess QC on your sample, study what genes are most common and which if any are targetable. 
