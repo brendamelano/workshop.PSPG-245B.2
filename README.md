@@ -1,4 +1,4 @@
-# workshop.mutation.2021
+# workshop
 
 ** please remember to set the working directory to your source by clicking Sesssion-> Set working directory -> to source file location
 
@@ -63,7 +63,7 @@ Pathway analysis – how this leads in to the design/search of drugs
 Structural biology for coding variants
 
 
-Workshop ( this will constitute the bulk of the workshop )
+Workshop ( this will constitute the bulk of the time spent )
 
 * We will start off with basic data mining.  To begin with will learn how to directly download mutation data from R.  There are many sources and API's however here will be using  cbioportal. 
 * Although this is not a course in R per se, but you will learn how to manipulate/wrangle a the mutation data.frame.  
