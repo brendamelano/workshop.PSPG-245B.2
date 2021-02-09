@@ -33,6 +33,8 @@ Software requirements
     + dplyr
     + VennDiagram
     + reshape2
+    + gridExtra
+    + ggrepel
     
 Please make sure to either clone the github repo or download the entire dropbox folder. Unzip this to a folder.  
 
