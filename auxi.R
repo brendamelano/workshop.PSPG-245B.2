@@ -42,7 +42,7 @@ cosmic.70 = temp$cosmic.70
 cancer.list = temp$cancer.list
 drug = temp$drug
 cancer.gene = as.character ( cancer.list$gene )
-
+drug.up = read.csv("drug.up.csv")
 
 }
 

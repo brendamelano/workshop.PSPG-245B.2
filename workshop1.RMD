@@ -14,7 +14,10 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE )
 ```
 
 # PSPG 245B
-In this workshop you will learn about the fundamentals of mutation identification in cancer. By the end of the course you should be able to generate your own full R markdown for your assigned TCGA ID, including plots and identification of actionable mutations. Please see the the accompanying PDF for more information. 
+In this workshop you will learn about the fundamentals of how to download and utilize cancer genomic data. By the end of the course you should be able to generate your own full R markdown for your assigned TCGA ID, including plots and identification of actionable mutations. 
+
+  * Please see the the accompanying PDF for more information.
+
 
 ## The following are required for this workshop
 <div style="background-color:#b6d2db">
@@ -35,7 +38,7 @@ Please make sure to either clone the github repo or download the entire dropbox 
 
 * https://www.dropbox.com/sh/lvaqmurdozncnxw/AADWRtK8woO4MjXIvGqcUcpXa?dl=1
 
-* https://github.com/ahdee/workshop.mutation.2019
+* https://github.com/ahdee/workshop.PSPG-245B.2.git
 
 In this workshop we will be mainly using cbioportal's API to download the data we need. Thus it is important that you have access to the internet.
 
@@ -71,9 +74,14 @@ library(kableExtra)
 library ( dplyr)
 library ( reshape2)
 library(VennDiagram)
+library(gridExtra)
+library (ggrepel)
+# make sure to set to working directory 
+# Session->set working directory -> to source file location 
 source("auxi.R")
 
 # initiate cbioportal API
+
 cbiop = CGDS("http://www.cbioportal.org/")
 ```
 
@@ -101,11 +109,11 @@ k2( head ( studies, 10) , "example list of data available in cbioportal")
 # lets find out how many studies are available to the public
 dim ( studies ) # dim is a function to tabulate a dataframe
 
-# ? how do you think we can use this to look for the dataset we need amoung > 200 studies?
+# ? how do you think we can use this to look for the dataset we need among > 200 studies?
 
 # Find the dataset you want. 
 # According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
-# However lets first search for all the breast cancer studies available so that we can look to see what is availabe. 
+# However lets first search for all the breast cancer studies available so that we can look to see what is available. 
 
 breast = studies[ grepl("Breast", studies$name, ignore.case = T ), ]
 
@@ -160,7 +168,7 @@ cat ( samples, sep="\n")
 ```
 
 ## Here I chose a random sample to test 
-* IMPORTANT! here you need to use your own assigned TCGA ID 
+* IMPORTANT! here you need to use your own assigned TCGA ID so make sure that it is listed. 
 
 ```{r}
 
@@ -192,6 +200,8 @@ k2 ( t ( myclinicaldata[myclinicaldata$pid %in% myid, ] ))
 # important fields to consider. 
 # AGE, AJCC_PATHOLOGIC_TUMOR_STAGE, Ethnicity
 # DFS ( disease free), OS ( overall survival)
+# this is quite extraordinary how much data is in here. 
+# think about your experimental designs and what you can do with this! 
 
 
 ### Bonus Lets have some fun here, even with just a table of clinical data we can do some investigation. 
@@ -280,6 +290,7 @@ mutation = mygeneticprofile[grepl( "Mutation", mygeneticprofile$genetic_profile_
 cna = mygeneticprofile[grepl( "Putative copy", mygeneticprofile$genetic_profile_name),1 ]
 
 exp = mygeneticprofile[grepl( "V2 RSEM", mygeneticprofile$genetic_profile_name),1 ]
+exp = exp[ grepl ( "mrna$", exp)]
 
 ```
 
@@ -317,7 +328,7 @@ total = ceiling ( length( cancer.gene)/100  )  *100
 mutations = data.frame (   stringsAsFactors = F )
 expression = data.frame (   stringsAsFactors = F )
 e = 1
-for(i in seq(from=150, to=total, by=150)){
+for(i in seq(from=150, to=total, by=150) ){
    
     if ( i > length(cancer.gene)){
         i = length(cancer.gene)
@@ -362,15 +373,21 @@ mutations$xvar_link_msa = gsub('getma.org','http://mutationassessor.org/r3', mut
 mutations$xvar_link_pdb = gsub('getma.org','http://mutationassessor.org/r3', mutations$xvar_link_pdb  )
 ```
 
-Besides Mutation data we also downloaded expression RNAseq data in the form of TPM. 
+# Besides Mutation data we also downloaded expression RNAseq data in the form of TPM. 
 * Let take a look at some of our favorite genes. 
+* Here is an example of comparing samples that test positive for HER2 vs. those that don't
+* _NOTE_ ERBB2 is the HER2 gene
+* EGFR is the HER1 gene 
 
-```{r}
+```{r fig=TRUE,fig.width=12, fig.height=12}
 expressionc= expression[complete.cases(expression), ]
 samplesnice = gsub ( "-",".", samples)
 expressionc[ row.names (expressionc ) %in% c(  "TP53" , "KRAS"), samplesnice ]
 
-for ( gene in c("BRCA2","PTEN","TP53")){
+do.these = c( "TP53", "BRCA2","PTEN", "BRCA1", "ERBB2", "EGFR"  )
+plot.out = list()
+
+for ( gene in do.these  ){
 
 g1 = melt (  expression[gene,  ]  )
 colnames ( g1 )= c("pid","value")
@@ -379,13 +396,20 @@ g1$pid = gsub ( "\\.","-", g1$pid)
 g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
 g1$value = log2 ( g1$value + 1 )
 
+mann_whit = wilcox.test(g1[g1$HER2p == "NO.HER2", ]$value,
+                        g1[g1$HER2p != "NO.HER2", ]$value
+                        ,paired=FALSE) 
+
+p = round ( mann_whit$p.value, 2 )  
+bon = p * length ( do.these )
+
 gthis = ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
         geom_violin()+ 
         geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
         theme_bw() +
         ylab("log2 (tpm + 1 ) ") +
         xlab("") +
-        theme(legend.position="bottom", legend.title=element_blank(), legend.key = element_blank(),
+        theme(legend.position="none", legend.title=element_blank(), legend.key = element_blank(),
               
               axis.text.y = element_text(size=12),
               axis.text.x = element_text(angle = 90, size=11.5),
@@ -395,13 +419,132 @@ gthis = ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
               legend.text      =element_text(size=12)
         ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
                          geom = "crossbar", width = .5)  + ggtitle ( gene ) +
-    scale_fill_manual(values = c("#a6cee3","#b2df8a", "#fdbf6f") )
-plot ( gthis )
+    scale_fill_manual(values = c("#a6cee3","#b2df8a", "#fdbf6f") ) +
+    ggtitle ( paste ( gene, "p.value", p, "corr", bon ))
+plot.out[[gene]] = gthis
+#plot ( gthis )
 }
+
+do.call("grid.arrange", c(plot.out, ncol=2))
+
 
 
 ```
 
+# Now lets see if there are genes that correlate well with the HER2 gene 
+
+```{r fig=TRUE,fig.width=12, fig.height=12}
+
+exp = data.frame ( t ( log2 ( expression + 1 )))
+temp = cor(exp[-1], exp$ERBB2, method="spearman") 
+her2.c = as.numeric(temp )
+names ( her2.c) = row.names ( temp )
+her2.c = sort ( abs ( her2.c ), decreasing = T )
+her2.c = round ( her2.c, 3)
+
+
+do.these = head ( names ( her2.c ))
+plot.out = list()
+
+for ( gene in do.these  ){
+
+g1 = melt (  expression[gene,  ]  )
+colnames ( g1 )= c("pid","value")
+g1$pid = gsub ( "\\.","-", g1$pid)
+
+g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
+g1$value = log2 ( g1$value + 1 )
+
+mann_whit = wilcox.test(g1[g1$HER2p == "NO.HER2", ]$value,
+                        g1[g1$HER2p != "NO.HER2", ]$value
+                        ,paired=FALSE) 
+
+p = round ( mann_whit$p.value, 2 )  
+bon = p * length ( do.these )
+
+gthis = ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
+        geom_violin()+ 
+        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
+        theme_bw() +
+        ylab("log2 (tpm + 1 ) ") +
+        xlab("") +
+        theme(legend.position="none", legend.title=element_blank(), legend.key = element_blank(),
+              
+              axis.text.y = element_text(size=12),
+              axis.text.x = element_text(angle = 90, size=11.5),
+              axis.title.x = element_text(size=22),
+              
+              axis.title.y     = element_text(size=22), 
+              legend.text      =element_text(size=12)
+        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+                         geom = "crossbar", width = .5)  + ggtitle ( gene ) +
+    scale_fill_manual(values = c("#a6cee3","#b2df8a", "#fdbf6f") ) +
+    ggtitle ( paste ( gene, "p.value", p, "corr", bon, "spearm", her2.c[gene] ))
+plot.out[[gene]] = gthis
+#plot ( gthis )
+}
+
+do.call("grid.arrange", c(plot.out, ncol=2))
+
+```
+
+
+# study sample id and see if there are any alteration in expression
+
+```{r}
+
+scaled.dat <- data.frame ( t ( scale(exp) )) # note that I had to use the log2 version
+myid2 = gsub ( "-", ".", myid )
+my.dat = scaled.dat[, myid2, drop=T] 
+names ( my.dat)= row.names (scaled.dat )
+my.dat = sort ( abs ( my.dat ), decreasing = T )
+my.dat = round ( my.dat, 3)
+
+gene = names (  my.dat[1] )
+g1 = melt (  log2 ( expression [gene,   ] + 1 )   )
+
+colnames ( g1 )= c("pid","value")
+g1 = g1[ order ( g1$value), ]
+g1$pid = factor ( g1$pid, levels=g1$pid)
+
+ggplot(g1, aes(x=pid, y=value, color=  value  )) +
+  geom_bar(stat="identity") +
+ scale_fill_brewer(palette = "Set1")    +
+  xlab("") + ylab("") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()
+
+  ) + theme_void()  + 
+  geom_text_repel(
+        data = g1[g1$pid == myid2,  ], 
+        aes(
+          label = pid
+        )
+        , 
+        fontface="bold", 
+        color="black",
+        size = 5, 
+        nudge_x = 20.15,
+    box.padding = 1.5,
+    nudge_y = -.5,
+  
+      ) + ggtitle ( paste ( gene )  )
+
+
+
+
+```
+
+# lets see if there are any druggable gene expression 
+
+```{r}
+# list of "overexpressed" genes for id 
+my.dat[my.dat> 1.96 ]
+
+drug.up[ drug.up$gene %in% names ( my.dat[my.dat> 1.96 ] ) , ]
+
+```
 
 
 # lets study the mutation table
@@ -415,6 +558,7 @@ names ( mutations )
 
 
 unique( mutations$mutation_type)
+
 # ? based on the lecture previously can identify the different mutation_type
 # ? based on the lecture previously can you figure out what each of these mean?  
 # for example which of these are nonsynonymous substitution?
@@ -632,7 +776,7 @@ ggplot(mutation.brca, aes(Var1,Freq), label=Freq ) +
 # lets assume that we don't know these genes 
 # BONUS can you think of another way to rediscover these genes and/or find novel ones?
 
-# HERE you is where the fun is! The discovery part.  And there are many many ways to do this.  
+# HERE is where the fun is! The discovery part.  And there are many many ways to do this.  
 # so be creative! 
 
 # here is a 2 sec way to do this. 
