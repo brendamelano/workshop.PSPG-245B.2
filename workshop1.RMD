@@ -107,11 +107,13 @@ k2( head ( studies, 10) , "example list of data available in cbioportal")
 
 # note: k2 is one of those cheat codes to make tables print out nicely 
 # ? what is the "10" for in the function above. 
+# printing the top ten rows
 
 # lets find out how many studies are available to the public
 dim ( studies ) # dim is a function to tabulate a dataframe
 
 # ? how do you think we can use this to look for the dataset we need among > 200 studies?
+# index or filter for the row which has a matching name to the desired dataset
 
 # Find the dataset you want. 
 # According to the syllabus we are looking for TCGA study on Breast Invasive Carcinoma (TCGA, Cell 2015) 
@@ -175,7 +177,7 @@ cat ( samples, sep="\n")
 ```{r}
 
 
-myid = "TCGA-C8-A131-01"
+myid = "TCGA-E2-A1LE-01"
 mysample[mysample== myid]
 
 # here is another way
