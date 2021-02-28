@@ -176,7 +176,6 @@ cat ( samples, sep="\n")
 
 ```{r}
 
-
 myid = "TCGA-E2-A1LE-01"
 mysample[mysample== myid]
 
@@ -189,6 +188,7 @@ mysample[grepl(myid, mysample)]
 
 ### Now lets check if it matches with what is reported: 817 
 length ( mysample)
+
 ```
 
 ## With this list of TCGA ids we can also get clinical data for each of the samples. 
@@ -659,7 +659,7 @@ ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
           axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "All mutation types")
 
 
-# As mentioned previously one reliable way to look for relevant mutations is to match it against what has been previosly observed and/or study. Here we can try to use Cosmic however other organization may be relevant as well including clinvar
+# As mentioned previously one reliable way to look for relevant mutations is to match it against what has been previously observed and/or study. Here we can try to use Cosmic however other organization may be relevant as well including clinvar
 
 cosmic.mutation = mutations [ !is.na(mutations$description), ]
 

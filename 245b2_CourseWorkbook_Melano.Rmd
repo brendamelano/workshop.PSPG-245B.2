@@ -2,28 +2,149 @@
 title: "245b2_CourseWorkbook_Melano"
 output: html_document
 ---
-### patient: TCGA-E2-A1LE
+### patient: TCGA-E2-A1LE: Workshop 1: Differential Gene Expression on TCGA data
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+# Besides Mutation data we also downloaded expression RNAseq data in the form of TPM. 
+* Let take a look at some of our favorite genes. 
+* Here is an example of comparing samples that test positive for HER2 vs. those that don't
+* _NOTE_ ERBB2 is the HER2 gene
+* EGFR is the HER1 gene 
+
+```{r fig=TRUE,fig.width=12, fig.height=12}
+expressionc= expression[complete.cases(expression), ]
+samplesnice = gsub ( "-",".", samples)
+expressionc[ row.names (expressionc ) %in% c(  "TP53" , "KRAS"), samplesnice ]
+
+do.these = c( "TP53", "BRCA2","PTEN", "BRCA1", "ERBB2", "EGFR"  )
+plot.out = list()
+
+for ( gene in do.these  ){
+
+g1 = melt (  expression[gene,  ]  )
+colnames ( g1 )= c("pid","value")
+g1$pid = gsub ( "\\.","-", g1$pid)
+
+g1$HER2p = ifelse ( g1$pid %in% her2p, "HER2P", "NO.HER2")
+g1$value = log2 ( g1$value + 1 )
+
+mann_whit = wilcox.test(g1[g1$HER2p == "NO.HER2", ]$value,
+                        g1[g1$HER2p != "NO.HER2", ]$value
+                        ,paired=FALSE) 
+
+p = round ( mann_whit$p.value, 2 )  
+bon = p * length ( do.these )
+
+gthis = ggplot(g1, aes(y=value, x=HER2p, fill=HER2p)) +
+        geom_violin()+ 
+        geom_jitter(shape=19, position=position_jitter(0.07), size=3 ) +
+        theme_bw() +
+        ylab("log2 (tpm + 1 ) ") +
+        xlab("") +
+        theme(legend.position="none", legend.title=element_blank(), legend.key = element_blank(),
+              
+              axis.text.y = element_text(size=12),
+              axis.text.x = element_text(angle = 90, size=11.5),
+              axis.title.x = element_text(size=22),
+              
+              axis.title.y     = element_text(size=22), 
+              legend.text      =element_text(size=12)
+        ) + stat_summary(fun.y = mean, fun.ymin = mean, fun.ymax = mean,
+                         geom = "crossbar", width = .5)  + ggtitle ( gene ) +
+    scale_fill_manual(values = c("#a6cee3","#b2df8a", "#fdbf6f") ) +
+    ggtitle ( paste ( gene, "p.value", p, "corr", bon ))
+plot.out[[gene]] = gthis
+#plot ( gthis )
+}
+
+do.call("grid.arrange", c(plot.out, ncol=2))
 ```
 
-## R Markdown
+### ALteration of expression in my sample
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+scaled.dat <- data.frame ( t ( scale(exp) )) # note that I had to use the log2 version
+myid2 = gsub ( "-", ".", myid )
+my.dat = scaled.dat[, myid2, drop=T] 
+names ( my.dat)= row.names (scaled.dat )
+my.dat = sort ( abs ( my.dat ), decreasing = T )
+my.dat = round ( my.dat, 3)
+
+gene = names (  my.dat[1] )
+g1 = melt (  log2 ( expression [gene,   ] + 1 )   )
+
+colnames ( g1 )= c("pid","value")
+g1 = g1[ order ( g1$value), ]
+g1$pid = factor ( g1$pid, levels=g1$pid)
+
+ggplot(g1, aes(x=pid, y=value, color=  value  )) +
+  geom_bar(stat="identity") +
+ scale_fill_brewer(palette = "Set1")    +
+  xlab("") + ylab("") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()
+
+  ) + theme_void()  + 
+  geom_text_repel(
+        data = g1[g1$pid == myid2,  ], 
+        aes(
+          label = pid
+        )
+        , 
+        fontface="bold", 
+        color="black",
+        size = 5, 
+        nudge_x = 20.15,
+    box.padding = 1.5,
+    nudge_y = -.5,
+  
+      ) + ggtitle ( paste ( gene )  )
+
+
+
+
+```
+
+
+## ML workshop: Kat Drake
+
+Plotting p-values and beta values
 
 ```{r cars}
-summary(cars)
+# Summarize and explore results - how many genes are significant? Which ones? Are they up or down regulated, and by how much?
+histogram(as.numeric(univariateResults['Pr(>|z|)',]))
+sum(as.numeric(univariateResults['Pr(>|z|)',]) < 0.05)
+univariateResults[1,as.numeric(univariateResults['Pr(>|z|)',]) < 0.05]
+histogram(as.numeric(univariateResults['Estimate',][as.numeric(univariateResults['Pr(>|z|)',]) < 0.05]))
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### generating permuted p-values to set null threshhold
+
+```{r cars}
+minPvalues <- apply(permutedOutcome, 2, function(outcome) {
+  permutedResults <- sapply(1:ncol(trainCleaned), function(i) {
+    fit <- glm(as.factor(outcome) ~ unlist(trainCleaned[,i]), family = 'binomial')
+    results <- summary(fit)$coef['unlist(trainCleaned[, i])', c('Estimate', 'Pr(>|z|)')]
+    c(colnames(trainCleaned)[i], results)
+  })
+  minP <- min(as.numeric(permutedResults['Pr(>|z|)',]))
+  minP
+})
+
+histogram(minPvalues)
+permCutoff <- quantile(minPvalues, 0.05)
+
+# number of significant genes
+sum(univariateResults['Pr(>|z|)',] < permCutoff)
+
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Marc Hafner - Pharmacogenomics 
+
