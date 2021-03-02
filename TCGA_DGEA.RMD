@@ -280,7 +280,7 @@ that having HER2 positive is much worse of survival then having both HER2 and ER
  
 
 # Now lets see what information is available for your study 
-mygeneticprofile = getGeneticProfiles(cbiop,brca.study)
+mygeneticprofile = getGeneticProfiles(cbiop, brca.study)
 k2 ( mygeneticprofile, "types of data available for chosen case" )
 
 
@@ -746,8 +746,8 @@ ggplot(mutation.gene [ 1:20, ] , aes(Var1,Freq), label=Freq ) +
           panel.background = element_blank(), 
           axis.line = element_line(colour = "black"), 
           text = element_text(size=16),  # size of label
-          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Most recurrent genes")
-
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Most recurrent genes") +
+  theme_bw()
 
 
 

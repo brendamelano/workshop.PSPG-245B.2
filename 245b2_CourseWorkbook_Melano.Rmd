@@ -104,6 +104,34 @@ ggplot(g1, aes(x=pid, y=value, color=  value  )) +
 
 
 
+# Mutation frequency in my tumor
+ggplot(mutation.type, aes(Var1,Freq), label=Freq ) +
+    geom_bar(aes(fill = Freq), stat="identity", position = "dodge") +
+    coord_flip() +
+    scale_fill_distiller(palette = "RdBu") + xlab("") + ylab("") +
+    theme(strip.text.y = element_text(angle = 0), legend.position="none") +
+    geom_text(aes(label=Freq), position=position_dodge(width=0.9), vjust=.4, hjust = .5, size=5) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "black"), 
+          text = element_text(size=16),  # size of label
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "All mutation types")
+
+
+# most common gene mutation for my tumor
+ggplot(mutation.gene [ 1:20, ] , aes(Var1,Freq), label=Freq ) +
+    geom_bar(aes(fill = Freq), stat="identity", position = "dodge") +
+    coord_flip() +
+    scale_fill_distiller(palette = "RdBu") + xlab("") + ylab("") +
+    theme(strip.text.y = element_text(angle = 0), legend.position="none") +
+    geom_text(aes(label=Freq), position=position_dodge(width=0.9), vjust=.4, hjust = .5, size=5) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "black"), 
+          text = element_text(size=16),  # size of label
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Most recurrent genes")
 
 ```
 
@@ -147,4 +175,57 @@ sum(univariateResults['Pr(>|z|)',] < permCutoff)
 ```
 
 # Marc Hafner - Pharmacogenomics 
+```{r cars}
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install()
+
+install.packages("GRmetrics")
+library()
+
+
+raw_data <- read.delim("~/Downloads/workshop_data_2021_synthdata_1_rawdata.tsv")
+
+processed <- raw_data %>% group_by(CellLineName, DrugName, Concentration) %>% summarize(mean = mean(ReadoutValue))
+
+ggplot(data = )
+  geom_point()
+
+```
+
+
+# Mike Keiser - Machine Learning -Small Molecules
+## Part 1 - Identifying the Cell Line from NCI60 that corresponds to my tumor
+```{r cars}
+# mydat is the scaled expression for my tumor for dge
+
+scaled.dat <- data.frame ( t ( scale(exp) )) # note that I had to use the log2 version
+myid2 = gsub ( "-", ".", myid )
+my.dat = scaled.dat[, myid2, drop=T] 
+names ( my.dat)= row.names (scaled.dat )
+my.dat = sort ( abs ( my.dat ), decreasing = T )
+my.dat = round ( my.dat, 3)
+
+# plotting the most common mutation loci based on gene
+ggplot(mutation.gene [ 1:20, ] , aes(Var1,Freq), label=Freq ) +
+    geom_bar(aes(fill = Freq), stat="identity", position = "dodge") +
+    coord_flip() +
+    scale_fill_distiller(palette = "RdBu") + xlab("") + ylab("") +
+    theme(strip.text.y = element_text(angle = 0), legend.position="none") +
+    geom_text(aes(label=Freq), position=position_dodge(width=0.9), vjust=.4, hjust = .5, size=5) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "black"), 
+          text = element_text(size=16),  # size of label
+          axis.text.x = element_text(angle=0, hjust=1) ) + ggtitle ( "Most recurrent genes") +
+  theme_bw()
+
+# my tumor is p53 wildtype so I will choose the only cell line that is p53 positive
+mutation.gene[mutation.gene$Var1 == 'p53',]
+
+
+```
+
 
